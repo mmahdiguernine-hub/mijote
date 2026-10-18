@@ -1,0 +1,246 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Meme structure de tokens que PeakMind (direction "Contour") : seules les valeurs changent, donc
+   tous les composants repris (ui/*, skeleton, metric-tile...) fonctionnent tels quels. Trois
+   palettes candidates, basculables en direct depuis Profil > Apparence (attribut data-palette sur
+   <html>) : terracotta (defaut), sauge, safran. */
+@theme inline {
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.2rem;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.4rem;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-fraunces);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--info);
+  --color-herb: var(--herb);
+  --shadow-soft: var(--shadow-soft);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+/* --- Palette A : Terracotta (defaut) -- argile cuite, creme, herbes. -------------------- */
+:root {
+  --background: #F6F0E7;
+  --foreground: #2B221C;
+  --card: #FDF9F3;
+  --card-foreground: #2B221C;
+  --popover: #FDF9F3;
+  --popover-foreground: #2B221C;
+  --primary: #A9472A;           /* 6,2:1 sur carte */
+  --primary-foreground: #FDF9F3;
+  --secondary: #EDE3D4;
+  --secondary-foreground: #2B221C;
+  --muted: #EDE3D4;
+  --muted-foreground: #6B5E50;  /* 5,8:1 sur carte */
+  --accent: #EDE3D4;
+  --accent-foreground: #2B221C;
+  --destructive: #b3261e;
+  --border: #E3D8C6;
+  --input: #E3D8C6;
+  --ring: #A9472A;
+  --radius: 0.625rem;
+  --success: #3F6B2E;
+  --warning: #9a5410;
+  --danger: #b3261e;
+  --info: #1d4ed8;
+  --herb: #4F6B3A;
+  --shadow-soft: 0 8px 24px -16px rgba(70, 40, 20, 0.3);
+  --hero-gradient: linear-gradient(135deg, #8E3A22 0%, #A9472A 55%, #C0603A 100%);
+  --hero-ink: #FDF9F3;
+  --hero-ink-soft: rgba(253, 249, 243, 0.92);
+  --hero-ink-faint: rgba(253, 249, 243, 0.78);
+  --hero-border: rgba(253, 249, 243, 0.18);
+}
+.dark {
+  --background: #1B1613;
+  --foreground: #F3EADF;
+  --card: #261F1B;
+  --card-foreground: #F3EADF;
+  --popover: #261F1B;
+  --popover-foreground: #F3EADF;
+  --primary: #E58B66;
+  --primary-foreground: #1B1613;
+  --secondary: #322925;
+  --secondary-foreground: #F3EADF;
+  --muted: #322925;
+  --muted-foreground: #B5A797;
+  --accent: #322925;
+  --accent-foreground: #F3EADF;
+  --destructive: #e08380;
+  --border: rgba(243, 234, 223, 0.1);
+  --input: rgba(243, 234, 223, 0.14);
+  --ring: #E58B66;
+  --success: #8CC27A;
+  --warning: #e0954a;
+  --danger: #e08380;
+  --info: #7fafde;
+  --herb: #9CC083;
+  --shadow-soft: 0 8px 28px -16px rgba(0, 0, 0, 0.6);
+  --hero-gradient: linear-gradient(135deg, #3A1D13 0%, #5A2A1A 55%, #75391F 100%);
+  --hero-ink: #F3EADF;
+  --hero-ink-soft: rgba(243, 234, 223, 0.9);
+  --hero-ink-faint: rgba(243, 234, 223, 0.72);
+  --hero-border: rgba(243, 234, 223, 0.14);
+}
+
+/* --- Palette B : Sauge -- potager, feuilles, lumiere douce. ------------------------------- */
+:root[data-palette="sauge"] {
+  --background: #EEF1E8;
+  --foreground: #1F2620;
+  --card: #FAFBF6;
+  --card-foreground: #1F2620;
+  --popover: #FAFBF6;
+  --popover-foreground: #1F2620;
+  --primary: #46663F;
+  --primary-foreground: #FAFBF6;
+  --secondary: #E1E7D8;
+  --muted: #E1E7D8;
+  --muted-foreground: #55604E;
+  --accent: #E1E7D8;
+  --border: #D7DFCB;
+  --input: #D7DFCB;
+  --ring: #46663F;
+  --herb: #B5761F;
+  --success: #2F6B35;
+  --hero-gradient: linear-gradient(135deg, #2F4A2B 0%, #46663F 55%, #5E8156 100%);
+  --hero-ink: #FAFBF6;
+  --hero-ink-soft: rgba(250, 251, 246, 0.92);
+  --hero-ink-faint: rgba(250, 251, 246, 0.78);
+}
+.dark[data-palette="sauge"] {
+  --background: #141A15;
+  --foreground: #E9EEE3;
+  --card: #1E261F;
+  --card-foreground: #E9EEE3;
+  --popover: #1E261F;
+  --popover-foreground: #E9EEE3;
+  --primary: #8DBA84;
+  --primary-foreground: #141A15;
+  --secondary: #28322A;
+  --muted: #28322A;
+  --muted-foreground: #A3B09C;
+  --accent: #28322A;
+  --border: rgba(233, 238, 227, 0.1);
+  --input: rgba(233, 238, 227, 0.14);
+  --ring: #8DBA84;
+  --herb: #E3AE5C;
+  --success: #8DBA84;
+  --hero-gradient: linear-gradient(135deg, #0F1A10 0%, #1A2E1B 55%, #254027 100%);
+  --hero-ink: #E9EEE3;
+  --hero-ink-soft: rgba(233, 238, 227, 0.9);
+  --hero-ink-faint: rgba(233, 238, 227, 0.72);
+}
+
+/* --- Palette C : Safran -- aubergine profonde et epices chaudes. -------------------------- */
+:root[data-palette="safran"] {
+  --background: #F7F1EA;
+  --foreground: #2A1F2A;
+  --card: #FFFBF6;
+  --card-foreground: #2A1F2A;
+  --popover: #FFFBF6;
+  --popover-foreground: #2A1F2A;
+  --primary: #6B3466;
+  --primary-foreground: #FFFBF6;
+  --secondary: #EFE4DC;
+  --muted: #EFE4DC;
+  --muted-foreground: #65555F;
+  --accent: #EFE4DC;
+  --border: #E6D9CF;
+  --input: #E6D9CF;
+  --ring: #6B3466;
+  --herb: #A8670B;
+  --hero-gradient: linear-gradient(135deg, #4E2349 0%, #6B3466 55%, #874577 100%);
+  --hero-ink: #FFFBF6;
+  --hero-ink-soft: rgba(255, 251, 246, 0.92);
+  --hero-ink-faint: rgba(255, 251, 246, 0.78);
+}
+.dark[data-palette="safran"] {
+  --background: #1A1419;
+  --foreground: #F1E7EE;
+  --card: #251D24;
+  --card-foreground: #F1E7EE;
+  --popover: #251D24;
+  --popover-foreground: #F1E7EE;
+  --primary: #D49BCB;
+  --primary-foreground: #1A1419;
+  --secondary: #31262F;
+  --muted: #31262F;
+  --muted-foreground: #B6A4B1;
+  --accent: #31262F;
+  --border: rgba(241, 231, 238, 0.1);
+  --input: rgba(241, 231, 238, 0.14);
+  --ring: #D49BCB;
+  --herb: #E7B55A;
+  --hero-gradient: linear-gradient(135deg, #24101F 0%, #3A1A33 55%, #4F2446 100%);
+  --hero-ink: #F1E7EE;
+  --hero-ink-soft: rgba(241, 231, 238, 0.9);
+  --hero-ink-faint: rgba(241, 231, 238, 0.72);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+.skeleton-shimmer {
+  background-image: linear-gradient(100deg, var(--muted) 30%, color-mix(in srgb, var(--muted) 45%, var(--card)) 50%, var(--muted) 70%);
+  background-size: 250% 100%;
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    background-image:
+      radial-gradient(circle at 12% 6%, color-mix(in srgb, var(--primary) 7%, transparent) 0%, transparent 42%),
+      radial-gradient(circle at 88% 55%, color-mix(in srgb, var(--herb) 6%, transparent) 0%, transparent 48%);
+    background-attachment: fixed;
+  }
+  .tabular-nums-all, .tabular-nums-all * {
+    font-variant-numeric: tabular-nums;
+  }
+  /* Cibles tactiles confortables (cuisine, mains occupees, supermarche) */
+  button, [role="button"], a, input[type="checkbox"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
