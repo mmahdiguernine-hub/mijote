@@ -4,6 +4,7 @@ import { analyzeCached, type RecipeAnalysis } from './analysis'
 import { checkRecipe } from './constraints'
 import { adaptToProfile } from './variants'
 import { pantryCoverage } from './shopping'
+import type { MealFocus } from './sport'
 
 // Classement des recettes pour un profil. Les contraintes strictes sont appliquees AVANT (une recette
 // interdite n'est jamais classee, au mieux sa variante adaptee) ; ici on ne fait que PONDERER :
@@ -24,6 +25,8 @@ export type ScoreContext = {
   targetCostPerServing?: number
   /** Bruit deterministe pour la variete, fourni par l'appelant (planner, "autre suggestion"). */
   random?: () => number
+  /** Besoin sportif de ce repas (avant/apres seance, recharge...), calcule par sport.ts. */
+  focus?: MealFocus | null
 }
 
 export type Scored = {
@@ -181,6 +184,21 @@ export function scoreRecipe(recipe: Recipe, ctx: ScoreContext, adaptedFrom?: Rec
   if (adaptedFrom) {
     score -= recipe.variant?.confidence === 'faible' ? 0.6 : 0.2
     reasons.push({ w: 0.5, text: 'Version adaptée à ton profil' })
+  }
+
+  // Sport : glucides avant une seance exigeante, proteines apres, digeste avant une course.
+  if (ctx.focus && a.nutrition.confidence !== 'faible') {
+    const n = a.nutrition.value
+    const f = ctx.focus
+    if (f.carbs === 'haut') {
+      if (n.carbs >= 70) { score += 1; reasons.push({ w: 1.5, text: `${f.reason} (≈ ${Math.round(n.carbs)} g de glucides)` }) }
+      else if (n.carbs < 40) score -= 0.8
+    }
+    if (f.minProtein) {
+      if (n.protein >= f.minProtein) { score += 0.8; if (f.carbs !== 'haut') reasons.push({ w: 1.4, text: `${f.reason} (≈ ${Math.round(n.protein)} g de protéines)` }) }
+      else if (n.protein < f.minProtein * 0.6) score -= 0.6
+    }
+    if (f.light && (n.fat > 25 || n.fiber > 12 || recipe.tags.includes('gourmand'))) { score -= 1; cautions.push('Un peu lourd avant l’effort') }
   }
 
   // Variete : bruit plus large si l'utilisateur aime la decouverte.

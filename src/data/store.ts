@@ -64,12 +64,14 @@ function diffById<T extends { id: string }>(prev: T[], next: T[]): { upserts: T[
 const planToRow = (e: PlanEntry): Row => ({
   id: e.id, date: e.date, slot: e.slot, kind: e.kind, recipe_id: e.recipeId ?? null, variant: e.variant ?? null, servings: e.servings,
   leftover_servings: e.leftoverServings ?? null, leftover_of: e.leftoverOf ?? null, locked: !!e.locked, cooked_at: e.cookedAt ?? null, note: e.note ?? null,
+  cook_on: e.cookOn ?? null, batch_id: e.batchId ?? null,
 })
 const rowToPlan = (r: Row): PlanEntry => ({
   id: r.id as string, date: r.date as string, slot: r.slot as PlanEntry['slot'], kind: r.kind as PlanEntry['kind'],
   recipeId: (r.recipe_id as string) ?? undefined, variant: (r.variant as PlanEntry['variant']) ?? undefined, servings: r.servings as number,
   leftoverServings: (r.leftover_servings as number) ?? undefined, leftoverOf: (r.leftover_of as string) ?? undefined,
   locked: (r.locked as boolean) || undefined, cookedAt: (r.cooked_at as string) ?? undefined, note: (r.note as string) ?? undefined,
+  cookOn: (r.cook_on as string) ?? undefined, batchId: (r.batch_id as string) ?? undefined,
 })
 
 const pantryToRow = (p: PantryItem): Row => ({
@@ -121,7 +123,7 @@ export class SupabaseStore implements UserStore {
         return r.data
       })
     try {
-      const [profile, plan, pantry, lists, manual, overrides, recipes] = await Promise.all([
+      const [profile, plan, pantry, lists, manual, overrides, recipes, docs] = await Promise.all([
         q(this.db.from('profiles').select('data').eq('id', this.userId).maybeSingle()),
         q(this.db.from('plan_entries').select('*')),
         q(this.db.from('pantry_items').select('*')),
@@ -129,7 +131,9 @@ export class SupabaseStore implements UserStore {
         q(this.db.from('shopping_manual_items').select('*')),
         q(this.db.from('shopping_overrides').select('*')),
         q(this.db.from('user_recipes').select('data')),
+        q(this.db.from('user_documents').select('kind, data')),
       ])
+      const docsOf = <T,>(kind: string) => ((docs as { kind: string; data: T }[]) ?? []).filter((d) => d.kind === kind).map((d) => d.data)
       const byList: Record<string, ShoppingOverride[]> = {}
       for (const r of (overrides as Row[]) ?? []) {
         const list = (byList[r.list_id as string] ??= [])
@@ -143,6 +147,9 @@ export class SupabaseStore implements UserStore {
         manual: ((manual as Row[]) ?? []).map(rowToManual),
         overrides: byList,
         userRecipes: ((recipes as { data: Recipe }[]) ?? []).map((r) => r.data),
+        training: docsOf('seance'),
+        races: docsOf('course'),
+        batches: docsOf('batch'),
       }
       writeCache(this.cacheKey, state)
       return state
@@ -170,6 +177,10 @@ export class SupabaseStore implements UserStore {
     sync('shopping_lists', prev.lists, next.lists, listToRow)
     sync('shopping_manual_items', prev.manual, next.manual, manualToRow)
     sync('user_recipes', prev.userRecipes, next.userRecipes, (r) => ({ id: r.id, data: r, source_url: r.source.url ?? null }))
+    // Seances, courses et sessions de batch : petits documents JSON dans une table generique.
+    sync('user_documents', prev.training, next.training, (x) => ({ id: x.id, kind: 'seance', data: x }))
+    sync('user_documents', prev.races, next.races, (x) => ({ id: x.id, kind: 'course', data: x }))
+    sync('user_documents', prev.batches, next.batches, (x) => ({ id: x.id, kind: 'batch', data: x }))
 
     const { upserts, deletes } = diffById(flattenOverrides(prev.overrides), flattenOverrides(next.overrides))
     if (upserts.length) ops.push(this.db.from('shopping_overrides').upsert(upserts.map(({ id: _id, ...row }) => { void _id; return { ...row, user_id: this.userId } })))

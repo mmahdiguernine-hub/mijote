@@ -127,13 +127,15 @@ export function mealsFromPlan(
   const missingRecipes: string[] = []
   for (const e of entries) {
     if (e.kind !== 'recette' || !e.recipeId) continue
-    if (range && (e.date < range.from || e.date > range.to)) continue
+    // Un plat prepare en batch s'achete pour le jour de preparation, pas pour le jour ou on le mange.
+    const when = e.cookOn ?? e.date
+    if (range && (when < range.from || when > range.to)) continue
     const base = ctx.catalog.recipesById.get(e.recipeId)
     if (!base) {
       missingRecipes.push(e.recipeId)
       continue
     }
-    meals.push({ entryId: e.id, date: e.date, recipe: resolveRecipe(base, e.variant, ctx), servings: e.servings })
+    meals.push({ entryId: e.id, date: when, recipe: resolveRecipe(base, e.variant, ctx), servings: e.servings })
   }
   return { meals, missingRecipes }
 }

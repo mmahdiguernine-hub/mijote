@@ -102,7 +102,7 @@ export type CourseType = 'plat' | 'entree' | 'dessert' | 'accompagnement' | 'pet
 export type Equipment = 'four' | 'plaque' | 'micro_ondes' | 'air_fryer' | 'mixeur' | 'robot' | 'cuiseur_riz' | 'autocuiseur'
 export type Difficulty = 1 | 2 | 3
 
-export type RecipeTag = 'rapide' | 'reconfortant' | 'batch' | 'economique' | 'leger' | 'gourmand' | 'enfants' | 'sans_cuisson' | 'anti_gaspi' | 'convivial'
+export type RecipeTag = 'rapide' | 'reconfortant' | 'batch' | 'economique' | 'leger' | 'gourmand' | 'enfants' | 'sans_cuisson' | 'anti_gaspi' | 'convivial' | 'sport'
 
 export type RecipeIngredient = {
   ingredientId: string
@@ -182,6 +182,49 @@ export type Profile = {
   leftoversOk: boolean
   slots: MealSlot[]
   onboardingDone: boolean
+  /** Nutrition sportive (facultative). */
+  sport?: SportProfile
+}
+
+// --- Sport ---------------------------------------------------------------------------------
+
+export type Sport = 'course' | 'renfo'
+
+export type SessionKind =
+  | 'endurance' | 'sortie_longue' | 'seuil' | 'fractionne' | 'recuperation' | 'trail' | 'course_objectif'
+  | 'force' | 'renfo_leger'
+
+export type TimeOfDay = 'matin' | 'midi' | 'soir'
+
+export type TrainingSession = {
+  id: string
+  date: string
+  sport: Sport
+  kind: SessionKind
+  durationMinutes: number
+  distanceKm?: number
+  elevationM?: number
+  timeOfDay?: TimeOfDay
+  title?: string
+  /** 'peakmind' : synchronisee depuis le plan PeakMind (remplacee a chaque synchro). */
+  source: 'peakmind' | 'manuel'
+}
+
+export type TargetRace = { date: string; name: string; distanceKm: number; elevationM?: number; targetMinutes?: number }
+
+export type SportProfile = {
+  enabled: boolean
+  weightKg?: number
+  heightCm?: number
+  ageYears?: number
+  sex?: 'homme' | 'femme'
+  /** Activite hors entrainement (travail, deplacements). */
+  dailyActivity: 'sedentaire' | 'leger' | 'actif'
+  bodyGoal: 'maintien' | 'perte' | 'prise'
+  sports: Sport[]
+  /** Moment habituel des seances, si PeakMind ne le precise pas. */
+  defaultTimeOfDay: TimeOfDay
+  peakmind?: { url: string; token: string; lastSync?: string }
 }
 
 // --- Variantes ----------------------------------------------------------------------------------
@@ -224,6 +267,9 @@ export type PlanEntry = {
   /** Pour une entree 'reste' : l'entree cuisinee d'origine. */
   leftoverOf?: string
   locked?: boolean
+  /** Batch cooking : jour ou le plat est prepare (avant le repas) et session de rattachement. */
+  cookOn?: string
+  batchId?: string
   /** Renseigne quand l'utilisateur indique avoir cuisine ce repas (le stock a ete deduit). */
   cookedAt?: string
   note?: string

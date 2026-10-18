@@ -1,10 +1,11 @@
 import type { Catalog } from '@/domain/catalog'
-import type { ManualShoppingItem, MealSlot, PantryItem, PlanEntry, Profile, Recipe, ShoppingListMeta, ShoppingOverride } from '@/domain/types'
+import type { ManualShoppingItem, MealSlot, PantryItem, PlanEntry, Profile, Recipe, ShoppingListMeta, ShoppingOverride, TrainingSession } from '@/domain/types'
 import type { ShoppingLine } from '@/domain/shopping'
 import { generatePlan, moveEntry, removeEntry, replaceRecipe, setMeal, setServings } from '@/domain/planner'
 import { consumeRecipe, addPurchases } from '@/domain/pantry'
 import { resolveRecipe } from '@/domain/variants'
-import { newId, type UserState } from './state'
+import { newId, type StoredRace, type UserState } from './state'
+import type { BatchProposal } from '@/domain/batch'
 
 // Toutes les modifications de l'etat utilisateur, en fonctions pures (etat -> nouvel etat).
 // Les ecrans et l'assistant appellent les memes fonctions : une seule logique metier.
@@ -24,6 +25,7 @@ export function generateDays(
   const { entries, warnings } = generatePlan({
     profile: s.profile, catalog, dates, existing: s.plan, keepExisting: opts.keepExisting, pantry: s.pantry,
     history, today: opts.today, seed: opts.seed ?? Date.now() % 100000, idFactory: () => newId('e'),
+    sessions: s.training, races: s.races,
   })
   return { state: { ...s, plan: entries }, warnings }
 }
@@ -150,4 +152,47 @@ export function deleteList(s: UserState, id: string): UserState {
   const { [id]: _removed, ...overrides } = s.overrides
   void _removed
   return { ...s, lists: s.lists.filter((l) => l.id !== id), manual: s.manual.filter((m) => m.listId !== id), overrides }
+}
+
+// --- Sport ---------------------------------------------------------------------------------
+
+export function upsertSession(s: UserState, session: TrainingSession): UserState {
+  const exists = s.training.some((x) => x.id === session.id)
+  return { ...s, training: exists ? s.training.map((x) => (x.id === session.id ? session : x)) : [...s.training, session] }
+}
+
+export function removeSession(s: UserState, id: string): UserState {
+  return { ...s, training: s.training.filter((x) => x.id !== id) }
+}
+
+export function upsertRace(s: UserState, race: StoredRace): UserState {
+  const exists = s.races.some((x) => x.id === race.id)
+  return { ...s, races: exists ? s.races.map((x) => (x.id === race.id ? race : x)) : [...s.races, race] }
+}
+
+export function removeRace(s: UserState, id: string): UserState {
+  return { ...s, races: s.races.filter((x) => x.id !== id) }
+}
+
+/** Remplace tout ce qui venait de PeakMind par la nouvelle synchro ; les saisies manuelles restent. */
+export function applyPeakmindSync(s: UserState, sessions: TrainingSession[], races: StoredRace[], at: string): UserState {
+  const profile = s.profile?.sport?.peakmind ? { ...s.profile, sport: { ...s.profile.sport, peakmind: { ...s.profile.sport.peakmind, lastSync: at } } } : s.profile
+  return {
+    ...s,
+    profile,
+    training: [...s.training.filter((x) => x.source !== 'peakmind'), ...sessions],
+    races: [...s.races.filter((x) => x.source !== 'peakmind'), ...races],
+  }
+}
+
+// --- Batch cooking -------------------------------------------------------------------------
+
+export function applyBatch(s: UserState, proposal: BatchProposal): UserState {
+  if (proposal.entries.length === 0) return s
+  return { ...s, plan: [...s.plan, ...proposal.entries], batches: [...s.batches, proposal.session] }
+}
+
+/** Annule une session de batch : ses repas disparaissent du planning (et donc des courses). */
+export function removeBatch(s: UserState, id: string): UserState {
+  return { ...s, plan: s.plan.filter((e) => e.batchId !== id), batches: s.batches.filter((b) => b.id !== id) }
 }

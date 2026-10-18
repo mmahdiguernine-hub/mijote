@@ -1,4 +1,7 @@
-import type { ManualShoppingItem, PantryItem, PlanEntry, Profile, Recipe, ShoppingListMeta, ShoppingOverride } from '@/domain/types'
+import type { ManualShoppingItem, PantryItem, PlanEntry, Profile, Recipe, ShoppingListMeta, ShoppingOverride, SportProfile, TargetRace, TrainingSession } from '@/domain/types'
+import type { BatchSession } from '@/domain/batch'
+
+export type StoredRace = TargetRace & { id: string; source: 'peakmind' | 'manuel' }
 
 // Etat utilisateur complet. Petit par nature (un foyer, quelques semaines de planning) : il est
 // charge en entier au demarrage puis modifie par des fonctions pures. La persistance (locale ou
@@ -13,9 +16,12 @@ export type UserState = {
   /** listId -> overrides */
   overrides: Record<string, ShoppingOverride[]>
   userRecipes: Recipe[]
+  training: TrainingSession[]
+  races: StoredRace[]
+  batches: BatchSession[]
 }
 
-export const EMPTY_STATE: UserState = { profile: null, plan: [], pantry: [], lists: [], manual: [], overrides: {}, userRecipes: [] }
+export const EMPTY_STATE: UserState = { profile: null, plan: [], pantry: [], lists: [], manual: [], overrides: {}, userRecipes: [], training: [], races: [], batches: [] }
 
 export const DEFAULT_PROFILE: Profile = {
   diet: 'omnivore',
@@ -60,3 +66,5 @@ export function localISO(d = new Date()): string {
 export function weekListId(monday: string): string {
   return `semaine-${monday}`
 }
+
+export const DEFAULT_SPORT: SportProfile = { enabled: true, dailyActivity: 'leger', bodyGoal: 'maintien', sports: ['course'], defaultTimeOfDay: 'soir' }

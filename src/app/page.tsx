@@ -2,10 +2,11 @@
 
 import Link from 'next/link'
 import { useMemo } from 'react'
-import { CalendarPlus, ChevronRight, Clock, ShoppingBasket, TriangleAlert, Utensils } from 'lucide-react'
+import { Activity, CalendarPlus, ChevronRight, Clock, ShoppingBasket, TriangleAlert, Utensils } from 'lucide-react'
 import { useMijote } from '@/data/mijote-provider'
 import { suggestRecipes } from '@/domain/scoring'
 import { expiringSoon } from '@/domain/pantry'
+import { dayNutrition, DAY_TYPE_LABEL, SESSION_LABEL } from '@/domain/sport'
 import { SLOT_LABEL, SLOT_ORDER, weekDates } from '@/domain/planner'
 import { resolveRecipe } from '@/domain/variants'
 import { computeList, weekListMeta } from '@/data/selectors'
@@ -71,6 +72,26 @@ export default function Accueil() {
           />
         </div>
       )}
+
+      {/* Sport du jour */}
+      {profile?.sport?.enabled && profile.sport.weightKg && (() => {
+        const nut = dayNutrition(profile.sport!, today, state.training, state.races)
+        const race = state.races.filter((r) => r.date >= today).sort((a, b) => a.date.localeCompare(b.date))[0]
+        const daysToRace = race ? Math.round((Date.parse(race.date) - Date.parse(today)) / 86400000) : null
+        if (!nut) return null
+        return (
+          <Link href="/sport" className="flex items-center justify-between gap-3 rounded-2xl bg-card border border-border p-4 mb-6">
+            <span className="flex items-center gap-3 min-w-0">
+              <span className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Activity size={18} aria-hidden /></span>
+              <span className="min-w-0">
+                <span className="font-semibold block">{DAY_TYPE_LABEL[nut.dayType]}{nut.sessions.length > 0 ? ` · ${nut.sessions.map((s) => SESSION_LABEL[s.kind].toLowerCase()).join(' + ')}` : ''}</span>
+                <span className="text-xs text-muted-foreground block">Glucides {nut.carbs.min}–{nut.carbs.max} g · protéines {nut.protein.min}–{nut.protein.max} g{daysToRace != null && daysToRace <= 14 ? ` · ${race!.name} dans ${daysToRace} j` : ''}</span>
+              </span>
+            </span>
+            <ChevronRight size={18} className="shrink-0" aria-hidden />
+          </Link>
+        )
+      })()}
 
       {/* Produits a utiliser */}
       {expiring.length > 0 && (

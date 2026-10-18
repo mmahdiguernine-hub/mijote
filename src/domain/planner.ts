@@ -4,6 +4,8 @@ import { analyzeCached } from './analysis'
 import { scoreRecipe, eligibleVersion, fitsSlot, seededRandom, type Scored, type ScoreContext } from './scoring'
 import { aggregateNeeds, addDays, choosePackages, type MealNeed } from './shopping'
 import { resolveRecipe } from './variants'
+import { mealFocus } from './sport'
+import type { TargetRace, TrainingSession } from './types'
 
 // Planning automatique. Glouton et deterministe (graine) : pour chaque creneau libre, dans l'ordre
 // chronologique, on classe les recettes eligibles avec le scoring du profil + des criteres propres
@@ -32,6 +34,9 @@ export type GenerateInput = {
   /** Budget pour la periode (sinon deduit du profil). */
   budget?: number
   idFactory?: () => string
+  /** Seances et courses : orientent les repas autour de l'entrainement si le profil sport est actif. */
+  sessions?: TrainingSession[]
+  races?: TargetRace[]
 }
 
 export type GenerateResult = { entries: PlanEntry[]; warnings: string[] }
@@ -155,7 +160,9 @@ export function generatePlan(input: GenerateInput): GenerateResult {
         if (prot) nearbyProteins.set(prot, (nearbyProteins.get(prot) ?? 0) + 1)
       }
 
+      const focus = profile.sport?.enabled ? mealFocus(profile.sport, date, slot, input.sessions ?? [], input.races ?? []) : null
       const ctx: ScoreContext = {
+        focus,
         profile, catalog, pantry: input.pantry, today: input.today, recentlyEaten, isWeekend: isWeekend(date),
         targetCostPerServing, random, month: Number(date.slice(5, 7)),
       }

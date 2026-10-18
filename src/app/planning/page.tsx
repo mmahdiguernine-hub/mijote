@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ChevronLeft, ChevronRight, Lock, LockOpen, Plus, RefreshCw, Sparkles, Trash2, ArrowRightLeft, ChefHat, Footprints, Repeat, Eye } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Lock, LockOpen, Plus, RefreshCw, Sparkles, Trash2, ArrowRightLeft, ChefHat, Footprints, Repeat, Eye, CookingPot, Activity } from 'lucide-react'
 import type { MealSlot, PlanEntry } from '@/domain/types'
 import { useMijote } from '@/data/mijote-provider'
 import { SLOT_LABEL, SLOT_ORDER, alternativesFor, weekDates, budgetForDates } from '@/domain/planner'
@@ -10,6 +10,7 @@ import { addDays } from '@/domain/shopping'
 import { analyzeCached } from '@/domain/analysis'
 import { resolveRecipe } from '@/domain/variants'
 import { suggestRecipes } from '@/domain/scoring'
+import { SESSION_LABEL } from '@/domain/sport'
 import { addMeal, generateDays, markCooked, moveMeal, removeMeal, replaceMeal, setEatingOut, setMealServings, toggleLock } from '@/data/actions'
 import { dayLabel, euro } from '@/lib/format'
 import { Page, PageHeader, Card, Estimate, PrimaryButton, SecondaryButton, Sheet, Stepper, RecipeThumb, Note } from '@/components/kit'
@@ -85,13 +86,27 @@ export default function Planning() {
           <SecondaryButton onClick={() => setConfirmRegen(true)} disabled={weekEntries.length === 0}><RefreshCw size={16} aria-hidden /> Tout reproposer</SecondaryButton>
         </div>
       )}
+      <div className="grid grid-cols-2 gap-2 mb-2">
+        <Link href="/batch" className="inline-flex items-center justify-center gap-2 min-h-11 rounded-xl bg-card border border-border text-sm font-semibold"><CookingPot size={16} aria-hidden /> Batch cooking</Link>
+        <Link href="/sport" className="inline-flex items-center justify-center gap-2 min-h-11 rounded-xl bg-card border border-border text-sm font-semibold"><Activity size={16} aria-hidden /> Sport</Link>
+      </div>
       <div className="mb-5"><Note>Les repas verrouillés <Lock size={11} className="inline" aria-label="verrouillés" /> et les repas à l’extérieur ne sont jamais modifiés automatiquement.</Note></div>
       {warnings.length > 0 && <div role="status" className="rounded-xl bg-warning/10 text-warning text-sm p-3 mb-4">{warnings.map((w, i) => <p key={i}>{w}</p>)}</div>}
 
       <div className="space-y-3">
         {days.map((d) => (
           <Card key={d} id={d} className={`p-3.5 scroll-mt-4 ${d === today ? 'ring-2 ring-primary/40' : ''} ${d < today ? 'opacity-75' : ''}`}>
-            <p className="text-sm font-semibold capitalize mb-2">{dayLabel(d, today)}</p>
+            <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+              <p className="text-sm font-semibold capitalize">{dayLabel(d, today)}</p>
+              {profile?.sport?.enabled && (
+                <div className="flex gap-1 flex-wrap">
+                  {state.training.filter((s) => s.date === d).map((s) => (
+                    <span key={s.id} className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{SESSION_LABEL[s.kind]} {s.durationMinutes} min</span>
+                  ))}
+                  {state.races.filter((r) => r.date === d).map((r) => <span key={r.id} className="text-[11px] px-2 py-0.5 rounded-full bg-herb/15 text-herb font-semibold">🏁 {r.name}</span>)}
+                </div>
+              )}
+            </div>
             <div className="space-y-2">
               {slots.map((slot) => {
                 const e = weekEntries.find((x) => x.date === d && x.slot === slot)
@@ -206,7 +221,7 @@ export default function Planning() {
       <button onClick={onOpen} className={`w-full flex items-center gap-3 rounded-xl p-2.5 text-left min-h-14 ${e.cookedAt ? 'bg-muted/60' : 'bg-background/60'}`}>
         {e.kind === 'exterieur' ? <span className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-lg" aria-hidden>🚶</span> : <RecipeThumb emoji={r?.emoji ?? '❓'} id={e.recipeId ?? 'x'} size={40} />}
         <span className="min-w-0 flex-1">
-          <span className="text-[11px] text-muted-foreground block">{SLOT_LABEL[slot]}{e.kind === 'reste' ? ` · reste du ${source ? dayLabel(source.date, today, 'short') : 'repas précédent'}` : ''}{e.kind === 'recette' ? ` · ${e.servings} pers.` : ''}</span>
+          <span className="text-[11px] text-muted-foreground block">{SLOT_LABEL[slot]}{e.kind === 'reste' ? ` · reste du ${source ? dayLabel(source.date, today, 'short') : 'repas précédent'}` : ''}{e.kind === 'recette' ? (e.leftoverServings ? ` · ${e.servings - e.leftoverServings} pers. + ${e.leftoverServings} portion${e.leftoverServings > 1 ? 's' : ''} d’avance` : ` · ${e.servings} pers.`) : ''}{e.cookOn && e.cookOn !== e.date ? ` · préparé ${dayLabel(e.cookOn, today, 'short')}` : ''}</span>
           <span className={`text-sm font-semibold block truncate ${e.cookedAt ? 'line-through text-muted-foreground' : ''}`}>{e.kind === 'exterieur' ? 'À l’extérieur' : r?.name ?? 'Recette inconnue'}</span>
         </span>
         {e.locked && <Lock size={14} className="text-muted-foreground shrink-0" aria-label="Verrouillé" />}

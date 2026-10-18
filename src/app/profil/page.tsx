@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { useTheme } from 'next-themes'
 import { Download, LogOut } from 'lucide-react'
-import type { Allergen, Difficulty, Equipment, Goal, GoalIntensity, MealSlot, Profile } from '@/domain/types'
+import type { Allergen, Difficulty, Equipment, Goal, GoalIntensity, MealSlot, Profile, SportProfile } from '@/domain/types'
 import { ALLERGEN_LABEL, EQUIPMENT_LABEL } from '@/domain/constraints'
 import { useMijote } from '@/data/mijote-provider'
 import { setProfile } from '@/data/actions'
-import { DEFAULT_PROFILE } from '@/data/state'
+import { DEFAULT_PROFILE, DEFAULT_SPORT } from '@/data/state'
 import { ALLERGEN_OPTIONS, DIET_OPTIONS, GOAL_OPTIONS, INTENSITY_LABEL, SLOT_OPTIONS } from '@/lib/labels'
 import { Page, PageHeader, Section, Card, Chip, Stepper, Note, SecondaryButton } from '@/components/kit'
 import { IngredientPicker } from '@/components/ingredient-picker'
@@ -36,6 +36,8 @@ export default function ProfilPage() {
   const [palette, setPalette] = usePalette()
   const p = profile ?? DEFAULT_PROFILE
   const patch = (x: Partial<Profile>) => update((s) => setProfile(s, { ...p, ...x }))
+  const sp = p.sport
+  const patchSport = (x: Partial<SportProfile>) => patch({ sport: { ...DEFAULT_SPORT, enabled: false, ...p.sport, ...x } })
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v])
 
   const goalOf = (g: Goal) => p.goals.find((x) => x.goal === g)
@@ -146,6 +148,40 @@ export default function ProfilPage() {
         </Card>
       </Section>
 
+      <Section title="Sport">
+        <Card className="p-4 space-y-4">
+          <label className="flex items-center gap-2 text-sm min-h-11 font-medium">
+            <input type="checkbox" checked={!!sp?.enabled} onChange={(e) => patchSport({ enabled: e.target.checked })} className="w-5 h-5 accent-[var(--primary)]" />
+            Adapter mes repas à mon entraînement
+          </label>
+          {sp?.enabled && (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                <NumField label="Poids (kg)" value={sp.weightKg} onChange={(v) => patchSport({ weightKg: v })} min={30} max={250} />
+                <NumField label="Taille (cm)" value={sp.heightCm} onChange={(v) => patchSport({ heightCm: v })} min={120} max={230} />
+                <NumField label="Âge" value={sp.ageYears} onChange={(v) => patchSport({ ageYears: v })} min={12} max={100} />
+                <div className="text-sm font-medium">Sexe<div className="flex gap-1 mt-1">{(['homme', 'femme'] as const).map((x) => <Chip key={x} active={sp.sex === x} onClick={() => patchSport({ sex: sp.sex === x ? undefined : x })} className="!min-h-10">{x === 'homme' ? 'Homme' : 'Femme'}</Chip>)}</div></div>
+              </div>
+              <Note>Taille, âge et sexe affinent l’estimation des calories (formule de Mifflin-St Jeor). Facultatifs.</Note>
+              <div><p className="text-sm font-medium mb-2">Activité hors sport</p>
+                <div className="flex flex-wrap gap-2">{([['sedentaire', 'Assis'], ['leger', 'Un peu actif'], ['actif', 'Debout / physique']] as const).map(([v, l]) => <Chip key={v} active={sp.dailyActivity === v} onClick={() => patchSport({ dailyActivity: v })}>{l}</Chip>)}</div></div>
+              <div><p className="text-sm font-medium mb-2">Objectif corporel</p>
+                <div className="flex flex-wrap gap-2">{([['maintien', 'Maintien'], ['perte', 'Perdre du poids'], ['prise', 'Prendre du muscle']] as const).map(([v, l]) => <Chip key={v} active={sp.bodyGoal === v} onClick={() => patchSport({ bodyGoal: v })}>{l}</Chip>)}</div></div>
+              <div><p className="text-sm font-medium mb-2">Sports</p>
+                <div className="flex flex-wrap gap-2">{([['course', 'Course / trail'], ['renfo', 'Musculation / renfo']] as const).map(([v, l]) => <Chip key={v} active={sp.sports.includes(v)} onClick={() => { const next = toggle(sp.sports, v); if (next.length) patchSport({ sports: next }) }}>{l}</Chip>)}</div></div>
+              <div><p className="text-sm font-medium mb-2">Je m’entraîne plutôt</p>
+                <div className="flex gap-2">{([['matin', 'Le matin'], ['midi', 'Le midi'], ['soir', 'Le soir']] as const).map(([v, l]) => <Chip key={v} active={sp.defaultTimeOfDay === v} onClick={() => patchSport({ defaultTimeOfDay: v })}>{l}</Chip>)}</div></div>
+              <div className="pt-2 border-t border-border space-y-2">
+                <p className="text-sm font-medium">Lien avec PeakMind</p>
+                <input defaultValue={sp.peakmind?.url ?? ''} onBlur={(e) => patchSport({ peakmind: e.target.value.trim() ? { url: e.target.value.trim(), token: sp.peakmind?.token ?? '' } : undefined })} placeholder="Adresse de PeakMind (https://…)" aria-label="Adresse de PeakMind" className="w-full min-h-11 rounded-xl border border-border bg-background px-3 text-base" />
+                <input defaultValue={sp.peakmind?.token ?? ''} onBlur={(e) => sp.peakmind && patchSport({ peakmind: { ...sp.peakmind, token: e.target.value.trim() } })} placeholder="Code de liaison (Réglages PeakMind)" aria-label="Code de liaison PeakMind" type="password" autoComplete="off" className="w-full min-h-11 rounded-xl border border-border bg-background px-3 text-base" />
+                <Note>Dans PeakMind : Réglages → « Lier Mijote » pour obtenir le code. Mijote lit seulement tes séances à venir et tes courses, jamais le reste.{sp.peakmind?.lastSync ? ` Dernière synchro : ${new Date(sp.peakmind.lastSync).toLocaleString('fr-FR')}.` : ''}</Note>
+              </div>
+            </>
+          )}
+        </Card>
+      </Section>
+
       <Section title="Apparence">
         <Card className="p-4 space-y-4">
           <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Palette de couleurs">
@@ -172,5 +208,15 @@ export default function ProfilPage() {
         </Card>
       </Section>
     </Page>
+  )
+}
+
+function NumField({ label, value, onChange, min, max }: { label: string; value?: number; onChange: (v: number | undefined) => void; min: number; max: number }) {
+  return (
+    <label className="text-sm font-medium">{label}
+      <input inputMode="decimal" defaultValue={value ?? ''} aria-label={label}
+        onBlur={(e) => { const v = Number(e.target.value.replace(',', '.')); onChange(e.target.value && Number.isFinite(v) && v >= min && v <= max ? v : undefined) }}
+        className="w-full min-h-11 rounded-xl border border-border bg-background px-3 text-base mt-1" />
+    </label>
   )
 }
